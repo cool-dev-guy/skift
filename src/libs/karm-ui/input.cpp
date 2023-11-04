@@ -5,6 +5,7 @@
 #include "layout.h"
 #include "view.h"
 
+#include<iostream>
 namespace Karm::Ui {
 
 /* --- Button ---------------------------------------------------------------- */
@@ -252,6 +253,14 @@ Child button(OnPress onPress, Mdi::Icon i, Str t) {
 /* --- Input ---------------------------------------------------------------- */
 
 struct TextModel {};
+// a useless func (will remove later)
+Vec<Rune> StrtoRune(String str){
+    Karm::Vec<Rune> runeVec;
+    for (auto r : iterRunes(str)) {
+        runeVec.pushBack(r);
+    }
+    return runeVec;
+}
 
 struct Input : public View<Input> {
     TextStyle _style;
@@ -267,6 +276,9 @@ struct Input : public View<Input> {
         _text = o._text;
         _mesure = NONE;
     }
+    // additional var's to store text buffer
+    Str buffstr="";
+    Vec<Rune> buffer;
 
     Media::FontMesure mesure() {
         if (_mesure) {
@@ -280,15 +292,39 @@ struct Input : public View<Input> {
         g.save();
 
         auto m = mesure();
-        auto baseline = bound().topStart() + m.baseline;
-
+        
+        auto padding = ((bound().bottomStart() - bound().topStart())-m.baseline)/2;
+        auto baseline = bound().bottomStart()-padding;
         if (_style.color) {
             g.fillStyle(*_style.color);
         }
-
+        //g.fillStyle(Gfx::GRAY50);
+        // code not required (requsable for place holder)
         g.textFont(_style.font);
-        g.fill(baseline, _text);
+        // g.fill(baseline, _text);
 
+        // apply text box shape
+        // ie, applying fill & stroke
+        g.fillStyle(Gfx::GRAY50.withOpacity(0.1));
+        g.strokeStyle(Gfx::stroke(GRAY600).withWidth(1).withAlign(Gfx::INSIDE_ALIGN));
+        g.stroke(bound(), 4);   //(bound,border-radius)
+        g.fill(bound(), 4);
+        
+        // render text
+        //Math::Vec2f j = bound().topStart()+baseline;
+        bool first = true;
+	    auto f = g.textFont();
+        Media::Glyph prev{0};
+        for (const Rune& rune : buffer) {
+			auto curr = f.glyph(rune);
+			if (not first)
+				baseline.x += f.kern(prev, curr);
+			g.stroke(baseline, curr);
+			baseline.x += f.advance(curr);
+            // g.fill(baseline, rune);
+            first = false;
+			prev = curr;
+        }
         if (debugShowLayoutBounds) {
             g.debugLine(
                 {
@@ -298,12 +334,23 @@ struct Input : public View<Input> {
                 Gfx::PINK);
             g.debugRect(bound(), Gfx::CYAN);
         }
-
         g.restore();
     }
-
+    // the type event function(need optimization)
+    void event(Events::Event &e) override {
+		
+		e.handle<Events::KeyboardEvent>([&](auto &m) {
+            if (!m.type) {
+				buffer.pushBack(m.rune);
+            };
+            return true;
+		});
+		shouldRepaint(*this);
+	
+	}
     Math::Vec2i size(Math::Vec2i, Layout::Hint) override {
-        return mesure().linebound.size().cast<isize>();
+        return {128, 26};
+        // value applied based on the slider {128,26}
     }
 };
 

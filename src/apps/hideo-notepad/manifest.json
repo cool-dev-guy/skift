@@ -1,0 +1,10 @@
+{
+    "$schema": "https://schemas.cute.engineering/stable/cutekit.manifest.component.v1",
+    "id": "hideo-notepad",
+    "type": "exe",
+    "description": "A simple notepad application.",
+    "requires": [
+        "karm-ui",
+        "karm-main"
+    ]
+}
