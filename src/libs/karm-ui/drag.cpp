@@ -10,6 +10,7 @@ struct Dismisable :
     OnDismis _onDismis;
     DismisDir _dir;
     f64 _threshold;
+
     Eased2f _drag{};
     Math::Vec2i _last{};
     bool _dismissed{};
@@ -20,8 +21,25 @@ struct Dismisable :
           _dir(dir),
           _threshold(threshold) {}
 
+    void reconcile(Dismisable &o) override {
+        if (not match(key(), o.key()))
+            reset();
+
+        _onDismis = std::move(o._onDismis);
+        _dir = o._dir;
+        _threshold = o._threshold;
+
+        ProxyNode<Dismisable>::reconcile(o);
+    }
+
     Math::Vec2i drag() const {
         return _drag.value().cast<isize>();
+    }
+
+    void reset() {
+        _drag = {};
+        _last = {};
+        _dismissed = false;
     }
 
     void paint(Gfx::Context &g, Math::Recti r) override {
@@ -35,27 +53,30 @@ struct Dismisable :
         g.restore();
     }
 
-    void event(Events::Event &e) override {
-        auto oldBound = bound().clipTo(child().bound().offset(_last));
-        if (_drag.needRepaint(*this, e)) {
+    void event(Async::Event &e) override {
+        if (auto *me = e.is<Events::MouseEvent>()) {
+            me->pos = me->pos - drag();
+            child().event(e);
+            me->pos = me->pos + drag();
+        } else if (e.is<Node::AnimateEvent>() and _dismissed and _drag.reached()) {
+            _onDismis(*this);
+            _dismissed = false;
+            Ui::ProxyNode<Dismisable>::event(e);
+        } else if (_drag.needRepaint(*this, e)) {
+            auto oldBound = bound().clipTo(child().bound().offset(_last));
             auto newBound = bound().clipTo(child().bound().offset(drag()));
             _last = drag();
             Ui::shouldRepaint(*this, oldBound.mergeWith(newBound));
+            Ui::ProxyNode<Dismisable>::event(e);
+        } else {
+            Ui::ProxyNode<Dismisable>::event(e);
         }
-
-        if (_dismissed and _drag.reached()) {
-            _onDismis(*this);
-        }
-
-        Ui::ProxyNode<Dismisable>::event(e);
     }
 
-    void bubble(Events::Event &e) override {
-        if (e.is<DragEvent>()) {
-            auto &de = e.unwrap<DragEvent>();
-
-            if (de.type == DragEvent::DRAG) {
-                auto d = _drag.target() + de.delta;
+    void bubble(Async::Event &e) override {
+        if (auto *de = e.is<DragEvent>()) {
+            if (de->type == DragEvent::DRAG) {
+                auto d = _drag.target() + de->delta;
 
                 d.x = clamp(
                     d.x,
@@ -68,7 +89,7 @@ struct Dismisable :
                     (bool)(_dir & DismisDir::DOWN) ? bound().height : 0);
 
                 _drag.set(*this, d);
-            } else if (de.type == DragEvent::END) {
+            } else if (de->type == DragEvent::END) {
                 if ((bool)(_dir & DismisDir::HORIZONTAL)) {
                     if (Math::abs(_drag.targetX()) / (f64)bound().width > _threshold) {
                         _drag.animate(*this, {bound().width * (_drag.targetX() < 0.0 ? -1.0 : 1), 0}, 0.25, Math::Easing::cubicOut);
@@ -103,11 +124,11 @@ struct DragRegion : public ProxyNode<DragRegion> {
 
     using ProxyNode::ProxyNode;
 
-    void event(Events::Event &e) override {
+    void event(Async::Event &e) override {
         if (not _grabbed)
             _child->event(e);
 
-        if (e.accepted)
+        if (e.accepted())
             return;
 
         e.handle<Events::MouseEvent>([&](auto &m) {
@@ -117,27 +138,19 @@ struct DragRegion : public ProxyNode<DragRegion> {
 
             if (m.type == Events::MouseEvent::PRESS) {
                 _grabbed = true;
-
-                DragEvent de = {.type = DragEvent::START};
-                bubble(de);
-
+                bubble<DragEvent>(*this, DragEvent::START);
                 return true;
             }
 
             if (m.type == Events::MouseEvent::RELEASE) {
                 _grabbed = false;
-
-                DragEvent de = {.type = DragEvent::END};
-                bubble(de);
-
+                bubble<DragEvent>(*this, DragEvent::END);
                 return true;
             }
 
             if (m.type == Events::MouseEvent::MOVE) {
                 if (_grabbed) {
-                    DragEvent de = {.type = DragEvent::DRAG, .delta = m.delta};
-                    bubble(de);
-
+                    bubble<DragEvent>(*this, DragEvent::DRAG, m.delta);
                     return true;
                 }
             }

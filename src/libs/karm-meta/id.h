@@ -1,6 +1,5 @@
 #pragma once
 
-#include <karm-base/panic.h>
 #include <karm-base/std.h>
 
 #include "traits.h"
@@ -10,13 +9,14 @@ namespace Karm::Meta {
 using Id = usize;
 
 template <typename T>
-static Id idOf() {
-    return reinterpret_cast<Id>(__PRETTY_FUNCTION__ + 41);
-}
-
-template <typename T>
-static char const *nameOf() {
-    return __PRETTY_FUNCTION__ + 40;
+static constexpr Id idOf() {
+    auto cstr = __PRETTY_FUNCTION__;
+    auto len = sizeof(__PRETTY_FUNCTION__);
+    auto hash = 0uz;
+    for (char const *b = cstr; b < cstr + len; b++)
+        hash = (1000003 * hash) ^ *b;
+    hash ^= len;
+    return hash;
 }
 
 template <typename T = struct __noType>
@@ -29,27 +29,18 @@ struct Type {
     constexpr static Id id() {
         return idOf<T>();
     }
-
-    constexpr static char const *name() {
-        return nameOf<T>();
-    }
 };
 
 template <>
 struct Type<struct __noType> {
     Id _id;
-    char const *_name;
 
     template <typename T>
     constexpr Type(Type<T> type)
-        : _id(type.id()), _name(type.name()) {}
+        : _id(type.id()) {}
 
     constexpr Id id() const {
         return _id;
-    }
-
-    constexpr char const *name() const {
-        return _name;
     }
 };
 

@@ -24,19 +24,17 @@ struct UpdateHsv {
 
 using Action = Var<UpdatePage, UpdateHsv>;
 
-inline State reduce(State state, Action action) {
-    return action.visit(Visitor{
+inline void reduce(State &s, Action action) {
+    action.visit(Visitor{
         [&](UpdatePage update) {
-            state.page = update.page;
-            return state;
+            s.page = update.page;
         },
         [&](UpdateHsv update) {
-            state.hsv = update.hsv;
-            return state;
+            s.hsv = update.hsv;
         },
     });
 }
 
-using Model = Karm::Ui::Model<State, Action, reduce>;
+using Model = Ui::Model<State, Action, reduce>;
 
 } // namespace ColorPicker

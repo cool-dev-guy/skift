@@ -2,5 +2,8 @@
     "$schema": "https://schemas.cute.engineering/stable/cutekit.manifest.component.v1",
     "id": "json-spec",
     "type": "lib",
-    "description": "JSON parser and serializer"
+    "description": "JSON parser and serializer",
+    "requires": [
+        "karm-io"
+    ]
 }

@@ -47,7 +47,7 @@ struct _Vec {
         bool changed = false;
 
         for (usize i = 1; i < _buf.len() + 1; i++) {
-            if (Op::eq(_buf[i - 1], val)) {
+            if (_buf[i - 1] == val) {
                 _buf.removeAt(i - 1);
                 changed = true;
                 i--;
@@ -89,7 +89,7 @@ struct _Vec {
 
     T const &peekFront() const { return _buf[0]; }
 
-    void pushFront(T const &value) { _buf.insert(T(value)); }
+    void pushFront(T const &value) { _buf.insert(0, T(value)); }
 
     void pushFront(T &&value) { _buf.insert(0, std::move(value)); }
 

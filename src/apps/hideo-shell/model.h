@@ -4,15 +4,22 @@
 
 namespace Shell {
 
-struct App {
+struct MenuIcon {
     Mdi::Icon icon;
-    Gfx::ColorRamp color;
+    Gfx::ColorRamp colors;
+};
+
+struct MenuEntry {
+    MenuIcon icon;
     String name;
 };
 
 struct Noti {
+    usize id;
+    MenuEntry entry;
     String title;
-    String msg;
+    String body;
+    Vec<String> actions{};
 };
 
 enum struct Panel {
@@ -22,11 +29,22 @@ enum struct Panel {
     SYS,
 };
 
+struct Surface {
+    usize id;
+    MenuEntry entry;
+    Gfx::Color color;
+};
+
 struct State {
     bool locked = true;
     bool isMobile = true;
     Panel activePanel = Panel::NIL;
     bool isSysPanelColapsed = true;
+
+    Media::Image background;
+    Vec<Noti> noti;
+    Vec<MenuEntry> entries;
+    Vec<Surface> surfaces;
 };
 
 struct ToggleTablet {};
@@ -35,16 +53,32 @@ struct Lock {};
 
 struct Unlock {};
 
-struct Activate {
-    Panel panel;
+struct DimisNoti {
+    usize index;
+};
+
+struct StartApp {
+    usize index;
+};
+
+struct CloseApp {
+    usize index;
+};
+
+struct FocusApp {
+    usize index;
 };
 
 struct ToggleSysPanel {};
 
-using Actions = Var<ToggleTablet, Lock, Unlock, Activate, ToggleSysPanel>;
+struct Activate {
+    Panel panel;
+};
 
-State reduce(State state, Actions action);
+using Action = Var<ToggleTablet, Lock, Unlock, DimisNoti, StartApp, CloseApp, FocusApp, Activate, ToggleSysPanel>;
 
-using Model = Ui::Model<State, Actions, reduce>;
+void reduce(State &, Action);
+
+using Model = Ui::Model<State, Action, reduce>;
 
 } // namespace Shell

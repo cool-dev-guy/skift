@@ -116,7 +116,7 @@ struct Font {
 
     /* --- Parsing Api ------------------------------------------------------ */
 
-    BScan begin() const {
+    Io::BScan begin() const {
         return _slice;
     }
 
@@ -158,7 +158,7 @@ struct Font {
     template <typename T>
     T lookupTable() {
         for (auto table : iterTables()) {
-            if (Op::eq(table.tag, T::SIG)) {
+            if (table.tag == T::SIG) {
                 return T{sub(_slice, table.offset, table.offset + table.length)};
             }
         }
@@ -170,7 +170,7 @@ struct Font {
     template <typename T>
     Res<T> requireTable() {
         for (auto table : iterTables()) {
-            if (Op::eq(table.tag, T::SIG)) {
+            if (table.tag == T::SIG) {
                 return Ok(T{sub(_slice, table.offset, table.offset + table.length)});
             }
         }

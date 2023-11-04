@@ -139,12 +139,16 @@ union Vec2 {
         return {static_cast<U>(x), static_cast<U>(y)};
     }
 
-    constexpr Ordr cmp(Vec2 other) const {
-        return ::cmp(x, other.x) | ::cmp(y, other.y);
-    }
-
     bool hasNan() const {
         return isNan(x) or isNan(y);
+    }
+
+    auto operator<=>(Vec2 const &other) const {
+        return _els <=> other._els;
+    }
+
+    auto operator==(Vec2 const &other) const {
+        return _els == other._els;
     }
 };
 
@@ -223,17 +227,17 @@ union Vec3 {
 
     constexpr Vec3 min(Vec3 const &other) {
         return {
-            Karm::min(x, other.x),
-            Karm::min(y, other.y),
-            Karm::min(z, other.z),
+            ::min(x, other.x),
+            ::min(y, other.y),
+            ::min(z, other.z),
         };
     }
 
     constexpr Vec3 max(Vec3<T> const &other) {
         return {
-            Karm::max(x, other.x),
-            Karm::max(y, other.y),
-            Karm::max(z, other.z),
+            ::max(x, other.x),
+            ::max(y, other.y),
+            ::max(z, other.z),
         };
     }
 
@@ -315,12 +319,16 @@ union Vec3 {
         };
     }
 
-    constexpr Ordr cmp(Vec3 other) const {
-        return ::cmp(x, other.x) | ::cmp(y, other.y) | ::cmp(z, other.z);
-    }
-
     bool hasNan() const {
         return isNan(x) or isNan(y) or isNan(z);
+    }
+
+    auto operator<=>(Vec3 const &other) const {
+        return _els <=> other._els;
+    }
+
+    auto operator==(Vec3 const &other) const {
+        return _els == other._els;
     }
 };
 
@@ -491,8 +499,12 @@ union Vec4 {
         return isNan(x) or isNan(y) or isNan(z) or isNan(w);
     }
 
-    Ordr cmp(Vec4 other) const {
-        return ::cmp(x, other.x) | ::cmp(y, other.y) | ::cmp(z, other.z) | ::cmp(w, other.w);
+    auto operator<=>(Vec4 const &other) const {
+        return _els <=> other._els;
+    }
+
+    auto operator==(Vec4 const &other) const {
+        return _els == other._els;
     }
 };
 
@@ -533,22 +545,10 @@ bool epsilonEq(Vec4<T> const &lhs, Vec4<T> const &rhs, T epsilon) {
 } // namespace Karm::Math
 
 template <typename T>
-struct Karm::Fmt::Formatter<Math::Vec2<T>> {
-    Res<usize> format(Io::TextWriter &writer, Math::Vec2<T> vec) {
-        return Fmt::format(writer, "Vec2({}, {})", vec.x, vec.y);
-    }
-};
+ReflectableTemplate$(Math::Vec2<T>, x, y);
 
 template <typename T>
-struct Karm::Fmt::Formatter<Math::Vec3<T>> {
-    Res<usize> format(Io::TextWriter &writer, Math::Vec3<T> vec) {
-        return Fmt::format(writer, "Vec3({}, {}, {})", vec.x, vec.y, vec.z);
-    }
-};
+ReflectableTemplate$(Math::Vec3<T>, x, y, z);
 
 template <typename T>
-struct Karm::Fmt::Formatter<Math::Vec4<T>> {
-    Res<usize> format(Io::TextWriter &writer, Math::Vec4<T> vec) {
-        return Fmt::format(writer, "Vec4({}, {}, {}, {})", vec.x, vec.y, vec.z);
-    }
-};
+ReflectableTemplate$(Math::Vec4<T>, x, y, z, w);

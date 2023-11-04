@@ -1,0 +1,7 @@
+module Grund
+
+include "karm-base/std.h"
+
+Bus {
+    broadcast() -> None
+}

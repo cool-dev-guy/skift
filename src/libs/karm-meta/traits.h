@@ -58,10 +58,13 @@ template <typename T>
 concept Trivial = __is_trivial(T);
 
 template <typename T>
-concept IsStandardLayout = __is_standard_layout(T);
+concept StandardLayout = __is_standard_layout(T);
 
 template <typename T>
-concept IsPod = __is_pod(T);
+concept Pod = Trivial<T> and StandardLayout<T>;
+
+template <typename T>
+concept TrivialyCopyable = __is_trivially_copyable(T);
 
 template <typename T>
 concept Signed = __is_signed(T);
@@ -110,5 +113,15 @@ inline constexpr bool _Same<T, T> = true;
 
 template <typename T, typename U>
 concept Same = _Same<T, U>;
+
+template <typename T, typename U = T>
+concept Comparable = requires(T const &a, T const &b) {
+    { a <=> b } -> Same<decltype(a <=> b)>;
+};
+
+template <typename T, typename U = T>
+concept Equatable = requires(T const &a, T const &b) {
+    { a == b } -> Same<decltype(a == b)>;
+};
 
 } // namespace Karm::Meta

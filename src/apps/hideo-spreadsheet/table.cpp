@@ -52,7 +52,7 @@ struct Table : public Ui::View<Table> {
 
     /* --- Events --- */
 
-    void event(Events::Event &e) override {
+    void event(Async::Event &e) override {
         e.handle<Events::MouseEvent>([&](Events::MouseEvent const &m) {
             auto pos = m.pos - bound().topStart();
             if (bound().contains(m.pos)) {
@@ -68,7 +68,7 @@ struct Table : public Ui::View<Table> {
                         auto sel = *_state->selection;
                         sel.end = *cell;
 
-                        if (Op::ne(*_state->selection, sel)) {
+                        if (*_state->selection != sel) {
                             Model::dispatch(*this, UpdateSelection{sel});
                         }
                     }

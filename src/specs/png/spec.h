@@ -2,13 +2,12 @@
 
 #include <karm-base/string.h>
 #include <karm-gfx/context.h>
+#include <karm-io/bscan.h>
 #include <karm-logger/logger.h>
-
-#include "../bscan.h"
 
 namespace Png {
 
-struct Ihdr : public BChunk {
+struct Ihdr : public Io::BChunk {
     static constexpr Str SIG = "IHDR";
 
     Math::Vec2i size() {
@@ -40,15 +39,15 @@ struct Ihdr : public BChunk {
     }
 };
 
-struct Plte : public BChunk {
+struct Plte : public Io::BChunk {
     static constexpr Str SIG = "PLTE";
 };
 
-struct Idat : public BChunk {
+struct Idat : public Io::BChunk {
     static constexpr Str SIG = "IDAT";
 };
 
-struct Iend : public BChunk {
+struct Iend : public Io::BChunk {
     static constexpr Str SIG = "IEND";
 };
 
@@ -68,13 +67,13 @@ struct Image {
     }
 
     static bool isPng(Bytes slice) {
-        return slice.len() >= 8 and Op::eq(sub(slice, 0, 8), bytes(SIG));
+        return slice.len() >= 8 and sub(slice, 0, 8) == SIG;
     }
 
     static Res<Image> load(Bytes slice) {
         Image image{slice};
 
-        if (not Op::eq(image.sig(), bytes(SIG)))
+        if (image.sig() == SIG)
             return Error::invalidData("invalid signature");
 
         image._ihdr = image.lookupChunk<Ihdr>();
@@ -87,7 +86,7 @@ struct Image {
     Image(Bytes slice)
         : _slice(slice) {}
 
-    BScan begin() const {
+    Io::BScan begin() const {
         return _slice;
     }
 
@@ -110,7 +109,7 @@ struct Image {
             c.data = s.nextBytes(c.len);
             c.crc32 = s.nextI32be();
 
-            if (Op::eq(c.sig, Iend::SIG)) {
+            if (c.sig == Iend::SIG) {
                 return NONE;
             }
 
@@ -121,7 +120,7 @@ struct Image {
     template <typename T>
     T lookupChunk() {
         for (auto chunk : iterChunks()) {
-            if (Op::eq(chunk.sig, T::SIG)) {
+            if (chunk.sig == T::SIG) {
                 return T{chunk.data};
             }
         }

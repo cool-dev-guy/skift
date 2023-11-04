@@ -22,35 +22,29 @@ struct MoveSelectionAction {
 
 struct SelectAction {};
 
-using Actions = Var<MoveSelectionAction, SelectAction>;
+using Action = Var<MoveSelectionAction, SelectAction>;
 
-State reduce(State state, Actions a) {
-    return a.visit(Visitor{
+void reduce(State &s, Action a) {
+    a.visit(Visitor{
         [&](MoveSelectionAction a) {
-            if (state.selected == 0 and a.delta < 0)
-                state.selected = state.configs.entries.len() - 1;
-            else if (state.selected == state.configs.entries.len() - 1 and a.delta > 0)
-                state.selected = 0;
+            if (s.selected == 0 and a.delta < 0)
+                s.selected = s.configs.entries.len() - 1;
+            else if (s.selected == s.configs.entries.len() - 1 and a.delta > 0)
+                s.selected = 0;
             else
-                state.selected += a.delta;
-            return state;
+                s.selected += a.delta;
         },
         [&](SelectAction) {
-            if (state.error) {
-                state.error = NONE;
-                return state;
-            }
-
-            auto res = Loader::loadEntry(state.configs.entries[state.selected]);
-            if (not res) {
-                state.error = String{res.none().msg()};
-            }
-            return state;
+            if (s.error)
+                s.error = NONE;
+            auto res = Loader::loadEntry(s.configs.entries[s.selected]);
+            if (not res)
+                s.error = String{res.none().msg()};
         },
     });
 }
 
-using Model = Ui::Model<State, Actions, reduce>;
+using Model = Ui::Model<State, Action, reduce>;
 
 /* --- Views ---------------------------------------------------------------- */
 
@@ -118,16 +112,16 @@ Ui::Child alert(String title, String subtitle) {
            Ui::spacing(64);
 }
 
-void intent(Ui::Node &n, Events::Event &e) {
+void intent(Ui::Node &n, Async::Event &e) {
     if (auto *k = e.is<Events::KeyboardEvent>()) {
-        if (Op::eq(k->key, Events::Key::LEFT)) {
-            Ui::dispatchAction<Actions>(n, MoveSelectionAction{-1});
+        if (k->key == Events::Key::LEFT) {
+            Ui::bubble<Action>(n, MoveSelectionAction{-1});
             e.accept();
-        } else if (Op::eq(k->key, Events::Key::RIGHT)) {
-            Ui::dispatchAction<Actions>(n, MoveSelectionAction{1});
+        } else if (k->key == Events::Key::RIGHT) {
+            Ui::bubble<Action>(n, MoveSelectionAction{1});
             e.accept();
-        } else if (Op::eq(k->key, Events::Key::ENTER)) {
-            Ui::dispatchAction<Actions>(n, SelectAction{});
+        } else if (k->key == Events::Key::ENTER) {
+            Ui::bubble<Action>(n, SelectAction{});
             e.accept();
         }
     }

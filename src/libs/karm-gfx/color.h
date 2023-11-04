@@ -26,11 +26,14 @@ struct Color {
         return {red, green, blue, alpha};
     }
 
-    ALWAYS_INLINE constexpr Color() : red(0), green(0), blue(0), alpha(0) {}
+    ALWAYS_INLINE constexpr Color()
+        : red(0), green(0), blue(0), alpha(0) {}
 
-    ALWAYS_INLINE constexpr Color(u8 red, u8 green, u8 blue, u8 alpha = 255) : red(red), green(green), blue(blue), alpha(alpha) {}
+    ALWAYS_INLINE constexpr Color(u8 red, u8 green, u8 blue, u8 alpha = 255)
+        : red(red), green(green), blue(blue), alpha(alpha) {}
 
-    ALWAYS_INLINE constexpr Color(Math::Vec4u v) : red(v.x), green(v.y), blue(v.z), alpha(v.w) {}
+    ALWAYS_INLINE constexpr Color(Math::Vec4u v)
+        : red(v.x), green(v.y), blue(v.z), alpha(v.w) {}
 
     ALWAYS_INLINE constexpr Color blendOver(Color const background) const {
         if (alpha == 0xff) {
@@ -130,13 +133,6 @@ struct Color {
 struct Hsv {
     f64 hue, saturation, value;
 
-    ALWAYS_INLINE Ordr cmp(Hsv const &other) const {
-        return hue == other.hue and
-                       saturation == other.saturation and value == other.value
-                   ? Ordr::EQUAL
-                   : Ordr::LESS;
-    }
-
     Hsv withHue(f64 hue) const {
         return {hue, saturation, value};
     }
@@ -148,6 +144,8 @@ struct Hsv {
     Hsv withValue(f64 value) const {
         return {hue, saturation, value};
     }
+
+    auto operator<=>(Hsv const &other) const = default;
 };
 
 Hsv rgbToHsv(Color color);
@@ -157,11 +155,7 @@ Color hsvToRgb(Hsv hsv);
 struct YCbCr {
     f32 y, cb, cr;
 
-    ALWAYS_INLINE Ordr cmp(YCbCr const &other) const {
-        return y == other.y and cb == other.cb and cr == other.cr
-                   ? Ordr::EQUAL
-                   : Ordr::LESS;
-    }
+    auto operator<=>(YCbCr const &other) const = default;
 };
 
 static inline YCbCr rgbToYCbCr(Color color) {

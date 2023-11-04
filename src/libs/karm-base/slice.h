@@ -1,7 +1,6 @@
 #pragma once
 
 #include "iter.h"
-#include "ordr.h"
 
 namespace Karm {
 
@@ -28,6 +27,23 @@ concept MutSliceable =
         { t.buf() } -> Meta::Same<U *>;
         { t[0uz] } -> Meta::Same<U &>;
     };
+
+template <Sliceable T, Sliceable U>
+    requires Meta::Comparable<typename T::Inner, typename U::Inner>
+constexpr auto operator<=>(T const &lhs, U const &rhs) {
+    for (usize i = 0; i < min(len(lhs), len(rhs)); i++) {
+        auto result = lhs[i] <=> rhs[i];
+        if (result != 0)
+            return result;
+    }
+    return len(lhs) <=> len(rhs);
+}
+
+template <Sliceable T, Sliceable U>
+    requires Meta::Equatable<typename T::Inner, typename U::Inner>
+constexpr bool operator==(T const &lhs, U const &rhs) {
+    return (lhs <=> rhs) == 0;
+}
 
 template <typename T>
 struct Slice {
@@ -102,7 +118,7 @@ using Bytes = Slice<Byte>;
 using MutBytes = MutSlice<Byte>;
 
 template <Sliceable S, typename T = typename S::Inner>
-Slice<T> sub(S &slice) {
+constexpr Slice<T> sub(S &slice) {
     return {
         slice.buf(),
         slice.len(),
@@ -110,7 +126,7 @@ Slice<T> sub(S &slice) {
 }
 
 template <Sliceable S, typename T = typename S::Inner>
-Slice<T> sub(S &slice, usize start, usize end) {
+constexpr Slice<T> sub(S &slice, usize start, usize end) {
     return {
         slice.buf() + start,
         clamp(end, start, slice.len()) - start,
@@ -162,11 +178,6 @@ MutBytes mutBytes(S &slice) {
 template <Sliceable S>
 usize sizeOf(S &slice) {
     return slice.len() * sizeof(typename S::Inner);
-}
-
-template <Sliceable LHS, Sliceable RHS>
-constexpr Ordr cmp(LHS const &lhs, RHS const &rhs) {
-    return cmp(lhs.buf(), lhs.len(), rhs.buf(), rhs.len());
 }
 
 template <Sliceable S>
@@ -413,11 +424,11 @@ ALWAYS_INLINE constexpr void sort(MutSliceable auto &slice, auto cmp) {
     auto right = len(slice) - 1;
 
     while (left <= right) {
-        while (cmp(at(slice, left), pivot).isLt()) {
+        while (cmp(at(slice, left), pivot) < 0) {
             left++;
         }
 
-        while (cmp(at(slice, right), pivot).isGt()) {
+        while (cmp(at(slice, right), pivot) > 0) {
             right--;
         }
 
@@ -435,16 +446,30 @@ ALWAYS_INLINE constexpr void sort(MutSliceable auto &slice, auto cmp) {
     sort(leftSlice, cmp);
 }
 
+ALWAYS_INLINE constexpr void sort(MutSliceable auto &slice) {
+    sort(slice, [](auto const &a, auto const &b) {
+        return a <=> b;
+    });
+}
+
+template <Sliceable T, typename U = T::Inner>
+ALWAYS_INLINE constexpr Opt<usize> indexOf(T const &slice, U const &needle) {
+    for (usize i = 0; i < slice.len(); i++)
+        if (slice[i] == needle)
+            return i;
+    return NONE;
+}
+
 ALWAYS_INLINE Opt<usize> search(Sliceable auto const &slice, auto cmp) {
     if (len(slice) == 0) {
         return NONE;
     }
 
-    if (cmp(slice[0]).isGt()) {
+    if (cmp(slice[0]) > 0) {
         return NONE;
     }
 
-    if (cmp(slice[len(slice) - 1]).isLt()) {
+    if (cmp(slice[len(slice) - 1]) < 0) {
         return NONE;
     }
 
@@ -456,11 +481,11 @@ ALWAYS_INLINE Opt<usize> search(Sliceable auto const &slice, auto cmp) {
 
         auto result = cmp(at(slice, mid));
 
-        if (result.isEq()) {
+        if (result == 0) {
             return mid;
         }
 
-        if (result.isLt()) {
+        if (result < 0) {
             left = mid + 1;
         } else {
             right = mid - 1;

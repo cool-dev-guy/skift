@@ -179,10 +179,16 @@ struct SdlHost :
         }
 
         case SDL_KEYUP: {
-            Events::KeyboardEvent uiEvent{
-                .type = Events::KeyboardEvent::RELEASE,
-            };
-            event(uiEvent);
+            event<Events::TypedEvent>(*this, Events::KeyboardEvent::RELEASE);
+            break;
+        }
+
+        case SDL_TEXTINPUT: {
+            Str text = sdlEvent.text.text;
+            for (u8 c : iterRunes(text)) {
+                logInfo("typed: {c}", c);
+                event<Events::TypedEvent>(*this, c);
+            }
             break;
         }
 
@@ -194,21 +200,24 @@ struct SdlHost :
             Math::Vec2<i32> screenPos = {};
             SDL_GetGlobalMouseState(&screenPos.x, &screenPos.y);
 
-            Events::MouseEvent uiEvent{
-                .type = Events::MouseEvent::MOVE,
+            Events::Button buttons = Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
 
-                .pos = {sdlEvent.motion.x, sdlEvent.motion.y},
-                .delta = screenPos - _lastScreenMousePos,
-            };
+            _lastMousePos = {sdlEvent.motion.x, sdlEvent.motion.y};
 
-            uiEvent.buttons |= (sdlEvent.motion.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.motion.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.motion.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
+            event<Events::MouseEvent>(
+                *this,
+                Events::MouseEvent{
+                    .type = Events::MouseEvent::MOVE,
+                    .pos = _lastMousePos,
+                    .delta = screenPos - _lastScreenMousePos,
+                    .buttons = buttons,
+                });
 
-            _lastMousePos = uiEvent.pos;
             _lastScreenMousePos = screenPos.cast<isize>();
 
-            event(uiEvent);
             break;
         }
 
@@ -217,20 +226,28 @@ struct SdlHost :
                 return;
             }
 
-            Events::MouseEvent uiEvent{
-                .type = Events::MouseEvent::RELEASE,
-                .pos = _lastMousePos,
-            };
+            Events::Button buttons = Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
 
-            uiEvent.button = (sdlEvent.button.which == SDL_BUTTON_LEFT) ? Events::Button::LEFT : Events::Button::NONE;
-            uiEvent.button = (sdlEvent.button.which == SDL_BUTTON_RIGHT) ? Events::Button::MIDDLE : Events::Button::NONE;
-            uiEvent.button = (sdlEvent.button.which == SDL_BUTTON_MIDDLE) ? Events::Button::RIGHT : Events::Button::NONE;
+            Events::Button button = Events::Button::NONE;
+            if (sdlEvent.button.button == SDL_BUTTON_LEFT) {
+                button = Events::Button::LEFT;
+            } else if (sdlEvent.button.button == SDL_BUTTON_RIGHT) {
+                button = Events::Button::RIGHT;
+            } else if (sdlEvent.button.button == SDL_BUTTON_MIDDLE) {
+                button = Events::Button::MIDDLE;
+            }
 
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
-
-            event(uiEvent);
+            event<Events::MouseEvent>(
+                *this,
+                Events::MouseEvent{
+                    .type = Events::MouseEvent::RELEASE,
+                    .pos = _lastMousePos,
+                    .buttons = buttons,
+                    .button = button,
+                });
             break;
         }
 
@@ -239,20 +256,28 @@ struct SdlHost :
                 return;
             }
 
-            Events::MouseEvent uiEvent{
-                .type = Events::MouseEvent::PRESS,
-                .pos = _lastMousePos,
-            };
+            Events::Button buttons = Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
+            buttons |= (sdlEvent.motion.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
 
-            uiEvent.button = (sdlEvent.button.button == SDL_BUTTON_LEFT) ? Events::Button::LEFT : Events::Button::NONE;
-            uiEvent.button = (sdlEvent.button.button == SDL_BUTTON_RIGHT) ? Events::Button::MIDDLE : Events::Button::NONE;
-            uiEvent.button = (sdlEvent.button.button == SDL_BUTTON_MIDDLE) ? Events::Button::RIGHT : Events::Button::NONE;
+            Events::Button button = Events::Button::NONE;
+            if (sdlEvent.button.button == SDL_BUTTON_LEFT) {
+                button = Events::Button::LEFT;
+            } else if (sdlEvent.button.button == SDL_BUTTON_RIGHT) {
+                button = Events::Button::RIGHT;
+            } else if (sdlEvent.button.button == SDL_BUTTON_MIDDLE) {
+                button = Events::Button::MIDDLE;
+            }
 
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_LMASK) ? Events::Button::LEFT : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_MMASK) ? Events::Button::MIDDLE : Events::Button::NONE;
-            uiEvent.buttons |= (sdlEvent.button.state & SDL_BUTTON_RMASK) ? Events::Button::RIGHT : Events::Button::NONE;
-
-            event(uiEvent);
+            event<Events::MouseEvent>(
+                *this,
+                Events::MouseEvent{
+                    .type = Events::MouseEvent::PRESS,
+                    .pos = _lastMousePos,
+                    .buttons = buttons,
+                    .button = button,
+                });
             break;
         }
 
@@ -261,32 +286,27 @@ struct SdlHost :
                 return;
             }
 
-            Events::MouseEvent uiEvent{
-                .type = Events::MouseEvent::SCROLL,
-                .pos = _lastMousePos,
-                .scrollLines = {
-                    sdlEvent.wheel.x,
-                    sdlEvent.wheel.y,
-                },
-                .scrollPrecise = {
+            event<Events::MouseEvent>(
+                *this,
+                Events::MouseEvent{
+                    .type = Events::MouseEvent::SCROLL,
+                    .pos = _lastMousePos,
+                    .scroll = {
 #if SDL_VERSION_ATLEAST(2, 0, 18)
-                    sdlEvent.wheel.preciseX,
-                    sdlEvent.wheel.preciseY,
+                        sdlEvent.wheel.preciseX,
+                        sdlEvent.wheel.preciseY,
 #else
-                    (f64)sdlEvent.wheel.x,
-                    (f64)sdlEvent.wheel.y,
+                        (f64)sdlEvent.wheel.x,
+                        (f64)sdlEvent.wheel.y,
 #endif
-                },
-            };
-
-            event(uiEvent);
+                    },
+                });
 
             break;
         }
 
         case SDL_QUIT: {
-            Events::ExitEvent uiEvent{Ok()};
-            bubble(uiEvent);
+            bubble<Events::ExitEvent>(*this, Ok());
             break;
         }
 
@@ -295,7 +315,8 @@ struct SdlHost :
         }
     }
 
-    void pump() override {
+    void
+    pump() override {
         SDL_Event e{};
 
         while (SDL_PollEvent(&e) != 0 and alive()) {
@@ -307,7 +328,7 @@ struct SdlHost :
         SDL_WaitEventTimeout(nullptr, span.toMSecs());
     }
 
-    void bubble(Events::Event &e) override {
+    void bubble(Async::Event &e) override {
         if (e.is<Ui::DragEvent>()) {
             auto &dragEvent = e.unwrap<Ui::DragEvent>();
             if (dragEvent.type == Ui::DragEvent::START) {

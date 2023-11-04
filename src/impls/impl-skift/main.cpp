@@ -3,16 +3,28 @@
 #include <hjert-api/api.h>
 #include <karm-logger/logger.h>
 #include <karm-main/base.h>
+#include <karm-panic/panic.h>
 
-extern "C" void __entryPoint(usize ho) {
+#include "hooks.h"
+
+void __panicHandler(Karm::PanicKind kind, char const *msg) {
+    Hj::log(msg).unwrap();
+
+    if (kind == Karm::PanicKind::PANIC) {
+        Hj::Task::self().crash().unwrap();
+        __builtin_unreachable();
+    }
+}
+
+extern "C" void __entryPoint(usize rawHandover, usize rawIn, usize rawOut) {
     Abi::SysV::init();
-
-    Handover::Payload *payload = (Handover::Payload *)ho;
+    Karm::registerPanicHandler(__panicHandler);
 
     Ctx ctx;
     char const *argv[] = {"service", nullptr};
     ctx.add<ArgsHook>(1, argv);
-    ctx.add<HandoverHook>(payload);
+    ctx.add<HandoverHook>((Handover::Payload *)rawHandover);
+    ctx.add<ChannelsHook>(Hj::Cap{rawIn}, Hj::Cap{rawOut});
 
     auto res = entryPoint(ctx);
 

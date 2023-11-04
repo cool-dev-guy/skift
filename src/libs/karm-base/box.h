@@ -3,7 +3,6 @@
 #include <karm-meta/traits.h>
 
 #include "opt.h"
-#include "panic.h"
 #include "std.h"
 
 namespace Karm {
@@ -69,9 +68,6 @@ struct Box {
         return *_ptr;
     }
 };
-
-template <typename T>
-using OptBox = Opt<Box<T>>;
 
 template <typename T, typename... Args>
 constexpr static Box<T> makeBox(Args... args) {

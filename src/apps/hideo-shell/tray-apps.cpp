@@ -25,29 +25,49 @@ Ui::Child searchInput() {
            Ui::button(Keyboard::show);
 }
 
-Ui::Child appIcon(Mdi::Icon icon, Gfx::ColorRamp colors, isize size = 22) {
-    return Ui::icon(icon, size) |
+Ui::Child appIcon(MenuIcon const &icon, isize size = 22) {
+    return Ui::icon(icon.icon, size) |
            Ui::spacing(size / 2.75) |
            Ui::center() |
            Ui::box({
                .borderRadius = size * 0.25,
                .borderWidth = 1,
-               .borderPaint = colors[5],
-               .backgroundPaint = colors[6],
-               .foregroundPaint = colors[1],
+               .borderPaint = icon.colors[5],
+               .backgroundPaint = icon.colors[6],
+               .foregroundPaint = icon.colors[1],
            });
 }
 
-Ui::Child appRow(Mdi::Icon icon, Gfx::ColorRamp colors, String title) {
-    return Ui::button(
-        Ui::NOP,
-        Ui::ButtonStyle::subtle(),
-        Ui::hflow(
-            12,
-            Layout::Align::START | Layout::Align::VCENTER,
-            appIcon(icon, colors),
-            Ui::labelLarge(title)) |
-            Ui::spacing(6));
+Ui::Child appRow(MenuEntry const &entry, usize i) {
+    return Ui::ButtonStyle::subtle(),
+           Ui::hflow(
+               12,
+               Layout::Align::START | Layout::Align::VCENTER,
+               appIcon(entry.icon),
+               Ui::labelLarge(entry.name)) |
+               Ui::spacing(6) | Ui::button(Model::bind<StartApp>(i), Ui::ButtonStyle::subtle());
+}
+
+Ui::Child runningApp(Surface const &surface, usize i) {
+    return Ui::stack(
+               appIcon(surface.entry.icon) |
+                   Ui::bound() |
+                   Ui::button(Model::bind<FocusApp>(i)),
+               Ui::button(Model::bind<CloseApp>(i), Ui::ButtonStyle::secondary(), Mdi::CLOSE) |
+                   Ui::align(Layout::Align::TOP_END) |
+                   Ui::spacing({0, 6, 6, 0})) |
+           Ui::pinSize({120, 192});
+}
+
+Ui::Child runningApps(State const &state) {
+    if (state.surfaces.len() == 0)
+        return Ui::empty(64);
+    return Ui::hflow(
+               8,
+               iter(state.surfaces)
+                   .mapi(runningApp)
+                   .collect<Ui::Children>()) |
+           Ui::center() | Ui::spacing({0, 64, 0, 16});
 }
 
 Ui::Child apps(Ui::Children apps) {
@@ -63,49 +83,37 @@ Ui::Child apps(Ui::Children apps) {
             Ui::grow());
 }
 
-Ui::Child appsList() {
-    Ui::Children appItems = {
-        appRow(Mdi::INFORMATION_OUTLINE, Gfx::BLUE_RAMP, "About"),
-        appRow(Mdi::CALCULATOR, Gfx::ORANGE_RAMP, "Calculator"),
-        appRow(Mdi::PALETTE_SWATCH, Gfx::RED_RAMP, "Color Picker"),
-        appRow(Mdi::COUNTER, Gfx::GREEN_RAMP, "Counter"),
-        appRow(Mdi::DUCK, Gfx::YELLOW_RAMP, "Demos"),
-        appRow(Mdi::FILE, Gfx::ORANGE_RAMP, "Files"),
-        appRow(Mdi::FORMAT_FONT, Gfx::BLUE_RAMP, "Fonts"),
-        appRow(Mdi::EMOTICON, Gfx::RED_RAMP, "Hello World"),
-        appRow(Mdi::IMAGE, Gfx::GREEN_RAMP, "Icons"),
-        appRow(Mdi::IMAGE, Gfx::YELLOW_RAMP, "Image Viewer"),
-        appRow(Mdi::CUBE, Gfx::BLUE_RAMP, "Ray Tracer"),
-        appRow(Mdi::COG, Gfx::ZINC_RAMP, "Settings"),
-        appRow(Mdi::TABLE, Gfx::GREEN_RAMP, "Spreadsheet"),
-        appRow(Mdi::WIDGETS, Gfx::BLUE_RAMP, "Widget Gallery"),
-    };
-
-    return apps(appItems);
+Ui::Child appsList(State const &state) {
+    return apps(
+        iter(state.entries)
+            .mapi(appRow)
+            .collect<Ui::Children>());
 }
 
-Ui::Child appsPanel() {
-    return appsList() | panel();
+Ui::Child appsPanel(State const &state) {
+    return appsList(state) | panel();
 }
 
-Ui::Child appsFlyout() {
+Ui::Child appsFlyout(State const &state) {
     return Ui::vflow(
-               Ui::dragHandle(),
-               appsList() | Ui::grow()) |
-           Ui::box({
-               .margin = {8, 8 + 64, 8, 8},
-               .padding = {12, 0},
-               .borderRadius = 8,
-               .borderWidth = 1,
-               .borderPaint = Ui::GRAY800,
-               .backgroundPaint = Ui::GRAY950,
-           }) |
-           Ui::bound() |
-           Ui::dismisable(
-               Model::bind<Activate>(Panel::NIL),
-               Ui::DismisDir::DOWN,
-               0.3) |
-           Ui::slideIn(Ui::SlideFrom::BOTTOM);
+        runningApps(state),
+        Ui::vflow(
+            Ui::dragHandle(),
+            appsList(state) | Ui::grow()) |
+            Ui::box({
+                .margin = {8, 8, 8, 8},
+                .padding = {12, 0},
+                .borderRadius = 8,
+                .borderWidth = 1,
+                .borderPaint = Ui::GRAY800,
+                .backgroundPaint = Ui::GRAY950,
+            }) |
+            Ui::bound() |
+            Ui::dismisable(
+                Model::bind<Activate>(Panel::NIL),
+                Ui::DismisDir::DOWN,
+                0.3) |
+            Ui::slideIn(Ui::SlideFrom::BOTTOM) | Ui::grow());
 }
 
 } // namespace Shell

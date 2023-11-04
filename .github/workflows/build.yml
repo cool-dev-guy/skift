@@ -13,7 +13,8 @@ jobs:
       - name: Install Dependencies
         run: |
             sudo apt update
-            sudo apt install clang lld llvm python3 git ninja-build libsdl2-dev nasm gcc-multilib
+            sudo apt install python3 git ninja-build libsdl2-dev nasm gcc-multilib qemu-system-x86
+            sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" llvm 16
 
       - name: Set up the build environment
         run: ./skift.sh setup && ./skift.sh doctor
@@ -30,3 +31,8 @@ jobs:
       - name: Build Userspace (x86_64)
         run: ./skift.sh build --target=skift-x86_64
 
+      - name: Build Userspace (Host)
+        run: ./skift.sh build
+
+      - name: Test Userspace (Host)
+        run: ./skift.sh test

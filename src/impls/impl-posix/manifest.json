@@ -5,13 +5,14 @@
     "description": "Karm platform embedding layer for POSIX.",
     "enableIf": {
         "sys": [
-            "linux"
+            "linux",
+            "darwin"
         ]
     },
     "requires": [],
     "provides": [
-        "karm-base-impl",
         "karm-logger-impl",
-        "karm-sys-impl"
+        "karm-sys-impl",
+        "karm-async-impl"
     ]
 }

@@ -21,12 +21,12 @@ enum struct GposLookupType : u16 {
     EXTENSION_POSITIONING = 9,
 };
 
-struct Gpos : public BChunk {
+struct Gpos : public Io::BChunk {
     static constexpr Str SIG = "GPOS";
 
-    using ScriptListOffset = BField<u16be, 4>;
-    using FeatureListOffset = BField<u16be, 6>;
-    using LookupListOffset = BField<u16be, 8>;
+    using ScriptListOffset = Io::BField<u16be, 4>;
+    using FeatureListOffset = Io::BField<u16be, 6>;
+    using LookupListOffset = Io::BField<u16be, 8>;
 
     ScriptList scriptList() const {
         return ScriptList{begin().skip(get<ScriptListOffset>()).restBytes()};
@@ -60,7 +60,7 @@ struct Gpos : public BChunk {
 
             // 4. Inspect the featureTag of each feature, and select the feature
             //    tables to apply to an input glyph string.
-            if (Op::eq(featureTable.tag, Str{"kern"})) {
+            if (featureTable.tag == "kern") {
                 kernFeatureTable = featureTable;
                 break;
             }
