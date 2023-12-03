@@ -1,3 +1,5 @@
+#include <karm-math/funcs.h>
+
 #include "mixbox.h"
 
 extern "C" unsigned char const _Mixbox_LUT[];
@@ -10,7 +12,7 @@ Bytes const LUT = Bytes(_Mixbox_LUT, _Mixbox_LUT_size);
 static f64 srgb2linear(f64 srgb) {
     if (srgb <= 0.04045f)
         return srgb / 12.92f;
-    return ::pow((srgb + 0.055f) / 1.055f, 2.4f);
+    return pow((srgb + 0.055f) / 1.055f, 2.4f);
 }
 
 static Math::Vec3f srgb2linear(Gfx::Color color) {
@@ -143,7 +145,7 @@ Math::Vec3f lerp(Math::Vec3f a, Math::Vec3f b, f64 t) {
     auto lb = unmix(b);
 
     for (usize i = 0; i < LATENT_SIZE; i++) {
-        la[i] = ::lerp(la[i], lb[i], t);
+        la[i] = Math::lerp(la[i], lb[i], t);
     }
 
     return mix(la);
